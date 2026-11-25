@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hindi Photo Reader</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Noto Sans Devanagari', sans-serif;
+    background: #1a1a2e;
+    color: #eee;
+    padding: 16px;
+    max-width: 600px;
+    margin: 0 auto;
+    min-height: 100vh;
+  }
+  h1 { font-size: 1.5em; text-align: center; margin-bottom: 16px; color: #fff; }
+  .card {
+    background: #16213e;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+  h2 { font-size: 1.05em; margin-bottom: 12px; color: #4ecca3; }
+  input[type=password], input[type=file] {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    background: #0f3460;
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  input:focus { outline: none; border-color: #4ecca3; }
+  button {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 4px 4px 4px 0;
+    transition: opacity 0.2s;
+  }
+  button:active { opacity: 0.7; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary { background: #4ecca3; color: #1a1a2e; }
+  .btn-danger { background: #e94560; color: #fff; }
+  .btn-secondary { background: #555; color: #fff; }
+  .btn-full { width: 100%; }
+  video {
+    width: 100%;
+    border-radius: 8px;
+    background: #000;
+    max-height: 60vh;
+    object-fit: cover;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 80px);
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .thumb {
+    position: relative;
+    width: 80px;
+    height: 100px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #0f3460;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .thumb button {
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 20px; height: 20px;
+    padding: 0; font-size: 14px;
+    border-radius: 50%;
+    background: #e94560; color: #fff;
+    line-height: 1;
+  }
+  .hidden { display: none !important; }
+  .status {
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+    font-size: 13px;
+  }
+  .status.info { background: #0f3460; color: #4ecca3; }
+  .status.err { background: #5c1a28; color: #ffb3c1; }
+
+  /* ===== TABS ===== */
+  .tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .tabs button {
+    flex: 1;
+    background: #0f3460;
+    color: #9bb;
+    margin: 0;
+    padding: 10px;
+    font-size: 14px;
+    border: 2px solid transparent;
+  }
+  .tabs button.active {
+    background: #4ecca3;
+    color: #1a1a2e;
+    border-color: #4ecca3;
+  }
+  .tabs button.loading {
+    background: #ffa726;
+    color: #1a1a2e;
+  }
+
+  /* ===== TEXT BOX ===== */
+  .text-box {
+    background: #0f3460;
+    padding: 12px;
+    border-radius: 8px;
+    max-height: 350px;
+    overflow-y: auto;
+    line-height: 2.1;
+    margin-bottom: 10px;
+    transition: font-size 0.15s;
+    scroll-behavior: smooth;
+    scroll-padding-block: 40%;
+  }
+  .text-box .sentence {
+    display: inline;
+    border-radius: 4px;
+    padding: 2px 4px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  .text-box .sentence:hover { background: #1a4a8a; }
+  .text-box .sentence.active {
+    font-weight: 600;
+    box-shadow: 0 0 0 2px currentColor;
+    outline: 2px solid transparent;
+    outline-offset: 1px;
+  }
+
+  /* ===== 5 HIGHLIGHT COLORS ===== */
+  .sentence.active.c-0 { background: #4ecca3; color: #1a1a2e; box-shadow: 0 0 0 2px #4ecca3 !important; }
+  .sentence.active.c-1 { background: #ffd93d; color: #1a1a2e; box-shadow: 0 0 0 2px #ffd93d !important; }
+  .sentence.active.c-2 { background: #ff6b9d; color: #fff;    box-shadow: 0 0 0 2px #ff6b9d !important; }
+  .sentence.active.c-3 { background: #6bcBff; color: #1a1a2e; box-shadow: 0 0 0 2px #6bcBff !important; }
+  .sentence.active.c-4 { background: #ffa726; color: #1a1a2e; box-shadow: 0 0 0 2px #ffa726 !important; }
+
+  /* ===== COLOR CHOOSER ===== */
+  .color-chooser {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: #0f3460;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .color-chooser label {
+    color: #9bb;
+    font-weight: 600;
+    font-size: 13px;
+    margin-right: 4px;
+  }
+  .color-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+    transition: transform 0.15s;
+  }
+  .color-dot:hover { transform: scale(1.15); }
+  .color-dot.selected {
+    border-color: #fff;
+    box-shadow: 0 0 0 2px #1a1a2e, 0 0 0 4px currentColor;
+  }
+  .color-dot[data-color="0"] { background: #4ecca3; color: #4ecca3; }
+  .color-dot[data-color="1"] { background: #ffd93d; color: #ffd93d; }
+  .color-dot[data-color="2"] { background: #ff6b9d; color: #ff6b9d; }
+  .color-dot[data-color="3"] { background: #6bcBff; color: #6bcBff; }
+  .color-dot[data-color="4"] { background: #ffa726; color: #ffa726; }
+
+  /* ===== CONTROLS ROW ===== */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    background: #0f3460;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 13px;
+  }
+  .controls label { color: #9bb; font-weight: 600; }
+  .speed-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 160px;
+  }
+  .speed-control input[type=range] {
+    flex: 1;
+    accent-color: #4ecca3;
+  }
+  .speed-val {
+    color: #4ecca3;
+    font-weight: bold;
+    min-width: 38px;
+    text-align: center;
+    background: #16213e;
+    padding: 3px 6px;
+    border-radius: 4px;
+  }
+  .size-control { display: flex; gap: 4px; }
+  .size-control button {
+    padding: 6px 12px;
+    font-size: 14px;
+    margin: 0;
+    background: #16213e;
+    color: #4ecca3;
+    border: 1px solid #4ecca3;
+  }
+  .size-control button:disabled { opacity: 0.3; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .row > * { flex: 1; min-width: 120px; }
+  small { color: #888; font-size: 11px; display: block; margin-top: 4px; }
+  .count { color: #4ecca3; font-weight: bold; }
+
+  /* ============================================
+     READING-AREA FULLSCREEN OVERLAY
+     ============================================ */
+  #readingOverlay {
+    position: fixed;
+    inset: 0;
+    background: #1a1a2e;
+    z-index: 9999;
+    padding: 16px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #readingOverlay.active { display: flex; }
+
+  .reading-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+  .reading-topbar h2 {
+    color: #4ecca3;
+    font-size: 1.2em;
+    margin: 0;
+  }
+  .exit-fs-btn {
+    background: #e94560;
+    color: #fff;
+    padding: 10px 18px;
+    margin: 0;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  #readingOverlay .tabs,
+  #readingOverlay .color-chooser,
+  #readingOverlay .controls,
+  #readingOverlay .row { flex-shrink: 0; }
+
+  #readingOverlay .text-box {
+    flex: 1;
+    max-height: none;
+    font-size: 22px;
+    line-height: 2.2;
+    min-height: 0;
+    scroll-padding-block: 40%;
+  }
+</style>
+</head>
+<body>
+
+<h1>📸 Hindi Photo Reader</h1>
+
+<!-- API Key -->
+<div class="card">
+  <h2>1. Gemini API Key</h2>
+  <input type="password" id="apiKey" placeholder="AIzaSy... paste karein" />
+  <small>Free key: aistudio.google.com/apikey</small>
+</div>
+
+<!-- Camera -->
+<div class="card">
+  <h2>2. Photos Lein (<span class="count" id="count">0</span>/10)</h2>
+  <div class="row">
+    <button class="btn-primary" id="startBtn">📷 Camera On</button>
+    <button class="btn-secondary" id="stopBtn">❌ Stop</button>
+  </div>
+  <br>
+  <video id="video" autoplay playsinline class="hidden"></video>
+  <div class="row hidden" id="captureRow" style="margin-top:10px">
+    <button class="btn-primary" id="captureBtn">📸 Capture</button>
+    <button class="btn-secondary" id="switchBtn">🔄 Flip</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <input type="file" id="fileInput" accept="image/*" multiple style="margin-top:10px">
+</div>
+
+<!-- Process -->
+<div class="card">
+  <h2>3. Read & Listen</h2>
+  <button class="btn-primary btn-full" id="processBtn" disabled>🔊 Hindi Audio Mein Sunein</button>
+  <div id="status" class="status hidden"></div>
+</div>
+
+<!-- Output Card -->
+<div class="card hidden" id="outputCard">
+  <h2>📝 Extracted Text</h2>
+
+  <div class="tabs">
+    <button id="tabHindi" class="active">हिन्दी</button>
+    <button id="tabHinglish">Hinglish</button>
+  </div>
+
+  <div class="color-chooser" id="colorChooser">
+    <label>🎨 Highlight:</label>
+    <button class="color-dot selected" data-color="0" title="Green"></button>
+    <button class="color-dot" data-color="1" title="Yellow"></button>
+    <button class="color-dot" data-color="2" title="Pink"></button>
+    <button class="color-dot" data-color="3" title="Blue"></button>
+    <button class="color-dot" data-color="4" title="Orange"></button>
+  </div>
+
+  <div class="controls">
+    <div class="speed-control">
+      <label>⚡ Speed:</label>
+      <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="0.9">
+      <span class="speed-val" id="speedVal">0.9x</span>
+    </div>
+    <div class="size-control">
+      <button id="sizeDown">A−</button>
+      <button id="sizeUp">A+</button>
+      <button id="fsBtn" title="Reading area fullscreen">⛶</button>
+    </div>
+  </div>
+
+  <div class="text-box" id="output" style="font-size:16px"></div>
+
+  <div class="row">
+    <button class="btn-primary" id="replayBtn">▶️ Sunein</button>
+    <button class="btn-danger" id="stopAudioBtn">⏹️ Stop</button>
+  </div>
+</div>
+
+<!-- ==============================================
+     READING FULLSCREEN OVERLAY
+     ============================================== -->
+<div id="readingOverlay">
+  <div class="reading-topbar">
+    <h2>📖 Reading Mode</h2>
+    <button class="exit-fs-btn" id="exitFsBtn">✕ Exit</button>
+  </div>
+
+  <div class="tabs">
+    <button id="tabHindiFs" class="active">हिन्दी</button>
+    <button id="tabHinglishFs">Hinglish</button>
+  </div>
+
+  <div class="color-chooser" id="colorChooserFs">
+    <label>🎨 Highlight:</label>
+    <button class="color-dot selected" data-color="0"></button>
+    <button class="color-dot" data-color="1"></button>
+    <button class="color-dot" data-color="2"></button>
+    <button class="color-dot" data-color="3"></button>
+    <button class="color-dot" data-color="4"></button>
+  </div>
+
+  <div class="controls">
+    <div class="speed-control">
+      <label>⚡ Speed:</label>
+      <input type="range" id="speedSliderFs" min="0.5" max="2" step="0.1" value="0.9">
+      <span class="speed-val" id="speedValFs">0.9x</span>
+    </div>
+    <div class="size-control">
+      <button id="sizeDownFs">A−</button>
+      <button id="sizeUpFs">A+</button>
+    </div>
+  </div>
+
+  <div class="text-box" id="outputFs" style="font-size:22px"></div>
+
+  <div class="row">
+    <button class="btn-primary" id="replayBtnFs">▶️ Sunein</button>
+    <button class="btn-danger" id="stopAudioBtnFs">⏹️ Stop</button>
+  </div>
+</div>
+
+<script>
+// ============ Config ============
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const MAX = 10;
+
+// ============ State ============
+let stream = null;
+let facing = 'environment';
+let images = [];
+let hindiSentences = [];
+let hinglishSentences = [];
+let activeLang = 'hindi';
+let activeSentenceIdx = -1;
+let currentUtterance = null;
+let isSpeaking = false;
+let fontSize = 16;
+let hinglishLoaded = false;
+let highlightColor = 0;
+
+// ============ Elements ============
+const $ = id => document.getElementById(id);
+const apiKeyEl = $('apiKey'), video = $('video');
+const startBtn = $('startBtn'), stopBtn = $('stopBtn');
+const captureRow = $('captureRow'), captureBtn = $('captureBtn'), switchBtn = $('switchBtn');
+const grid = $('grid'), countEl = $('count');
+const fileInput = $('fileInput');
+const processBtn = $('processBtn'), statusEl = $('status');
+const outputCard = $('outputCard'), outputEl = $('output');
+const replayBtn = $('replayBtn'), stopAudioBtn = $('stopAudioBtn');
+const speedSlider = $('speedSlider'), speedVal = $('speedVal');
+const sizeDown = $('sizeDown'), sizeUp = $('sizeUp');
+const tabHindi = $('tabHindi'), tabHinglish = $('tabHinglish');
+const fsBtn = $('fsBtn');
+
+const overlay = $('readingOverlay');
+const exitFsBtn = $('exitFsBtn');
+const outputFs = $('outputFs');
+const tabHindiFs = $('tabHindiFs'), tabHinglishFs = $('tabHinglishFs');
+const speedSliderFs = $('speedSliderFs'), speedValFs = $('speedValFs');
+const sizeDownFs = $('sizeDownFs'), sizeUpFs = $('sizeUpFs');
+const replayBtnFs = $('replayBtnFs'), stopAudioBtnFs = $('stopAudioBtnFs');
+
+// ============ Saved settings ============
+apiKeyEl.value = localStorage.getItem('gemini_key') || '';
+apiKeyEl.addEventListener('input', () => localStorage.setItem('gemini_key', apiKeyEl.value.trim()));
+
+const savedSpeed = parseFloat(localStorage.getItem('tts_speed') || '0.9');
+speedSlider.value = savedSpeed;
+speedSliderFs.value = savedSpeed;
+speedVal.textContent = savedSpeed.toFixed(1) + 'x';
+speedValFs.textContent = savedSpeed.toFixed(1) + 'x';
+
+const savedFont = parseInt(localStorage.getItem('font_size') || '16');
+fontSize = Math.max(12, Math.min(32, savedFont));
+outputEl.style.fontSize = fontSize + 'px';
+
+const savedColor = parseInt(localStorage.getItem('highlight_color') || '0');
+highlightColor = Math.max(0, Math.min(4, savedColor));
+updateColorButtons();
+
+// ============ Status ============
+function setStatus(msg, type = 'info') {
+  statusEl.textContent = msg;
+  statusEl.className = 'status ' + type;
+}
+
+// ============ Color chooser ============
+function updateColorButtons() {
+  document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.classList.toggle('selected', parseInt(dot.dataset.color) === highlightColor);
+  });
+  if (activeSentenceIdx >= 0) {
+    applyHighlightClasses(activeSentenceIdx);
+  }
+}
+
+function applyHighlightClasses(idx) {
+  const isFs = overlay.classList.contains('active');
+  const target = isFs ? outputFs : outputEl;
+  target.querySelectorAll('.sentence.active').forEach(el => {
+    el.classList.remove('active', 'c-0', 'c-1', 'c-2', 'c-3', 'c-4');
+  });
+  if (idx < 0) return;
+  const el = target.querySelector(`.sentence[data-idx="${idx}"]`);
+  if (el) el.classList.add('active', 'c-' + highlightColor);
+}
+
+function setHighlightColor(c) {
+  highlightColor = c;
+  localStorage.setItem('highlight_color', c);
+  updateColorButtons();
+}
+
+document.querySelectorAll('.color-dot').forEach(dot => {
+  dot.onclick = () => setHighlightColor(parseInt(dot.dataset.color));
+});
+
+// ============ Camera ============
+async function startCamera() {
+  try {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facing, width: { ideal: 1920 } },
+      audio: false
+    });
+    video.srcObject = stream;
+    video.classList.remove('hidden');
+    captureRow.classList.remove('hidden');
+    startBtn.textContent = '✅ Camera On';
+  } catch (e) {
+    alert('Camera error: ' + e.message + '\n\nHTTPS ya localhost zaroori hai!');
+  }
+}
+
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  video.classList.add('hidden');
+  captureRow.classList.add('hidden');
+  startBtn.textContent = '📷 Camera On';
+}
+
+function capturePhoto() {
+  if (images.length >= MAX) return alert('Max 10 photos!');
+  const c = document.createElement('canvas');
+  c.width = video.videoWidth;
+  c.height = video.videoHeight;
+  c.getContext('2d').drawImage(video, 0, 0);
+  addImage(c.toDataURL('image/jpeg', 0.85));
+}
+
+// ============ Images ============
+function addImage(dataUrl) {
+  if (images.length >= MAX) return;
+  images.push({ dataUrl, base64: dataUrl.split(',')[1] });
+  renderGrid();
+}
+
+function renderGrid() {
+  countEl.textContent = images.length;
+  grid.innerHTML = '';
+  images.forEach((img, i) => {
+    const d = document.createElement('div');
+    d.className = 'thumb';
+    d.innerHTML = `<img src="${img.dataUrl}"><button data-i="${i}">×</button>`;
+    grid.appendChild(d);
+  });
+  grid.querySelectorAll('button').forEach(b => {
+    b.onclick = () => { images.splice(+b.dataset.i, 1); renderGrid(); };
+  });
+  processBtn.disabled = images.length === 0;
+  captureBtn.disabled = images.length >= MAX;
+}
+
+fileInput.addEventListener('change', async e => {
+  for (const f of e.target.files) {
+    if (images.length >= MAX) break;
+    if (!f.type.startsWith('image/')) continue;
+    addImage(await toDataUrl(f));
+  }
+  fileInput.value = '';
+});
+
+const toDataUrl = f => new Promise(r => {
+  const rd = new FileReader();
+  rd.onload = () => r(rd.result);
+  rd.readAsDataURL(f);
+});
+
+// ============ Symbol cleanup (full stop SAFE) ============
+function stripSymbols(text) {
+  return text
+    .replace(/[!@#$%^&*()_+="'`~<>{}[\]\\|;:\/\-]/g, ' ')
+    .replace(/[“”„‟«»‹›]/g, ' ')
+    .replace(/[–—]/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+// ============ Gemini OCR ============
+async function extractText() {
+  const key = apiKeyEl.value.trim();
+  if (!key) throw new Error('Pehle API key daalein!');
+
+  const parts = [{
+    text: `Extract ALL text from these images accurately. Language may be Hindi, English, or mixed.
+Preserve the original text exactly including punctuation (danda ।, ॥, full stop ., question mark ?).
+Separate each page with "--- Page N ---".
+Output only the extracted text, no explanation. If a page is blank, write "(blank)".`
+  }];
+
+  images.forEach(img => {
+    parts.push({ inline_data: { mime_type: 'image/jpeg', data: img.base64 } });
+  });
+
+  const res = await fetch(`${GEMINI_URL}?key=${key}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 8192 }
+    })
+  });
+
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.error?.message || 'API error ' + res.status);
+  }
+
+  const data = await res.json();
+  return (data.candidates?.[0]?.content?.parts || [])
+    .map(p => p.text).filter(Boolean).join('\n');
+}
+
+// ============ Hinglish Conversion ============
+async function translateToHinglish(hindiText) {
+  const key = apiKeyEl.value.trim();
+  if (!key) throw new Error('API key missing!');
+
+  const prompt = `Convert the following Hindi text into natural CONVERSATIONAL Hinglish — the way Indian people actually speak (Hindi + English mix in Roman script).
+
+RULES:
+1. Keep meaning EXACTLY the same. Do not translate to formal English.
+2. Use Roman/English script for Hindi words. Example: "आज मौसम अच्छा है" → "Aaj mausam accha hai"
+3. Common English words stay in English (e.g., "school", "time", "problem", "okay", "actually", "basically").
+4. Mixed style is fine: "Aaj main school gaya tha, aur wahan bahut maza aaya."
+5. PRESERVE all sentence endings with "." (full stop) — do NOT remove them.
+6. Preserve page markers exactly like "--- Page 1 ---".
+7. Preserve numbers as digits.
+8. Output ONLY the Hinglish text — no explanations, no quotes, no extra lines.
+9. Convert every sentence, don't skip any.
+
+Original Hindi text:
+${hindiText}`;
+
+  const res = await fetch(`${GEMINI_URL}?key=${key}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 8192 }
+    })
+  });
+
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.error?.message || 'Translation error ' + res.status);
+  }
+
+  const data = await res.json();
+  const text = (data.candidates?.[0]?.content?.parts || [])
+    .map(p => p.text).filter(Boolean).join('\n').trim();
+
+  if (!text) throw new Error('Empty response from Gemini');
+  return text;
+}
+
+// ============ Sentence Splitter (full stop PRESERVED) ============
+function splitSentences(text) {
+  const cleaned = text.replace(/\r\n/g, '\n');
+  const result = [];
+  const raw = cleaned.split(/(?<=[।॥\.\?\!\n])\s*/);
+  for (let s of raw) {
+    s = s.trim();
+    if (!s) continue;
+    if (s.length > 400) {
+      const parts = s.split(/(?<=[।॥\.\?\!])\s*/);
+      for (const p of parts) {
+        const t = p.trim();
+        if (t) result.push(t);
+      }
+    } else {
+      result.push(s);
+    }
+  }
+  return result;
+}
+
+function getSentences() {
+  return activeLang === 'hinglish' ? hinglishSentences : hindiSentences;
+}
+
+// ============ Render ============
+function renderSentences() {
+  const list = getSentences();
+  const isFs = overlay.classList.contains('active');
+  const target = isFs ? outputFs : outputEl;
+  target.innerHTML = '';
+  list.forEach((s, i) => {
+    const span = document.createElement('span');
+    span.className = 'sentence';
+    span.dataset.idx = i;
+    span.textContent = s + ' ';
+    span.onclick = () => speakFrom(i);
+    target.appendChild(span);
+  });
+  if (activeSentenceIdx >= 0) applyHighlightClasses(activeSentenceIdx);
+}
+
+// ============ Highlight + PERFECT CENTER AUTO SCROLL ============
+function highlightSentence(idx) {
+  const isFs = overlay.classList.contains('active');
+  const target = isFs ? outputFs : outputEl;
+
+  activeSentenceIdx = idx;
+  if (idx < 0) {
+    target.querySelectorAll('.sentence.active').forEach(el => {
+      el.classList.remove('active', 'c-0', 'c-1', 'c-2', 'c-3', 'c-4');
+    });
+    return;
+  }
+
+  applyHighlightClasses(idx);
+
+  const el = target.querySelector(`.sentence[data-idx="${idx}"]`);
+  if (!el) return;
+
+  // ===== PERFECT CENTER SCROLL (mobile-safe) =====
+  requestAnimationFrame(() => {
+    const boxRect = target.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+
+    const elCenterInBox =
+      (elRect.top - boxRect.top) + target.scrollTop + (elRect.height / 2);
+
+    const targetScroll = elCenterInBox - (target.clientHeight / 2);
+
+    target.scrollTo({
+      top: Math.max(0, targetScroll),
+      behavior: 'smooth'
+    });
+  });
+}
+
+// ============ TTS (ONLY Hindi Female Voice) ============
+function getHindiFemaleVoice() {
+  const voices = speechSynthesis.getVoices();
+  const hindi = voices.filter(v => v.lang.toLowerCase().startsWith('hi'));
+  const femaleNames = ['female', 'swara', 'kalpana', 'heera', 'lekha', 'priya', 'google हिन्दी'];
+  return hindi.find(v => femaleNames.some(n => v.name.toLowerCase().includes(n)))
+      || hindi[0]
+      || null;
+}
+
+function prepareForSpeech(text) {
+  return text
+    .replace(/[।॥]/g, ',')
+    .replace(/[!@#$%^&*()_+="'`~<>{}[\]\\|;:\/\-]/g, ' ')
+    .replace(/[“”„‟«»‹›]/g, ' ')
+    .replace(/[–—]/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
+function speakFrom(startIdx = 0) {
+  if (!('speechSynthesis' in window)) return alert('Browser TTS support nahi karta');
+  const list = getSentences();
+  if (list.length === 0) return;
+
+  speechSynthesis.cancel();
+  isSpeaking = true;
+  stopAudioBtn.disabled = false;
+  stopAudioBtnFs.disabled = false;
+
+  const voice = getHindiFemaleVoice();
+  if (!voice) {
+    setStatus('⚠️ Hindi female voice nahi mili. Chrome/Android pe try karein.', 'err');
+  }
+
+  let idx = Math.max(0, Math.min(startIdx, list.length - 1));
+
+  function speakNext() {
+    if (!isSpeaking) return;
+    if (idx >= list.length) {
+      isSpeaking = false;
+      highlightSentence(-1);
+      stopAudioBtn.disabled = true;
+      stopAudioBtnFs.disabled = true;
+      return;
+    }
+
+    const rawText = list[idx];
+    highlightSentence(idx);
+
+    if (/^---\s*Page\s*\d+.*---$/i.test(rawText)) {
+      idx++;
+      setTimeout(speakNext, 150);
+      return;
+    }
+
+    const speakText = prepareForSpeech(rawText);
+    if (!speakText) {
+      idx++;
+      speakNext();
+      return;
+    }
+
+    const utt = new SpeechSynthesisUtterance(speakText);
+    utt.lang = 'hi-IN';
+    utt.rate = parseFloat(speedSlider.value);
+    utt.pitch = 1.15;
+    if (voice) { utt.voice = voice; utt.lang = voice.lang; }
+
+    utt.onend = () => { idx++; speakNext(); };
+    utt.onerror = (e) => {
+      if (e.error === 'interrupted' || e.error === 'canceled') return;
+      console.warn('TTS error:', e.error);
+      idx++;
+      speakNext();
+    };
+
+    currentUtterance = utt;
+    speechSynthesis.speak(utt);
+  }
+
+  speakNext();
+}
+
+function stopSpeaking() {
+  isSpeaking = false;
+  speechSynthesis.cancel();
+  currentUtterance = null;
+  highlightSentence(-1);
+  stopAudioBtn.disabled = true;
+  stopAudioBtnFs.disabled = true;
+}
+
+// ============ Main Process ============
+async function processAll() {
+  processBtn.disabled = true;
+  setStatus('⏳ Text extract ho raha hai...', 'info');
+
+  try {
+    const text = await extractText();
+    if (!text || !text.trim()) {
+      setStatus('❌ Koi text nahi mila. Clear photos try karein.', 'err');
+      return;
+    }
+
+    const cleanedHindi = stripSymbols(text);
+    hindiSentences = splitSentences(cleanedHindi);
+    hinglishSentences = [];
+    hinglishLoaded = false;
+
+    activeLang = 'hindi';
+    updateTabs();
+    activeSentenceIdx = -1;
+    renderSentences();
+    outputCard.classList.remove('hidden');
+    setStatus('✅ Text mil gaya! Audio chal rahi hai...', 'info');
+    speakFrom(0);
+    outputCard.scrollIntoView({ behavior: 'smooth' });
+  } catch (e) {
+    setStatus('❌ ' + e.message, 'err');
+  } finally {
+    processBtn.disabled = false;
+  }
+}
+
+// ============ Language Tabs ============
+async function switchToHinglish() {
+  if (activeLang === 'hinglish') return;
+  stopSpeaking();
+
+  if (hinglishLoaded && hinglishSentences.length > 0) {
+    activeLang = 'hinglish';
+    updateTabs();
+    activeSentenceIdx = -1;
+    renderSentences();
+    return;
+  }
+
+  setTabLoading(true);
+  setStatus('⏳ Hinglish mein convert ho raha hai... thoda wait', 'info');
+
+  try {
+    const hindiText = hindiSentences.join(' ');
+    const hinglishRaw = await translateToHinglish(hindiText);
+    const cleaned = stripSymbols(hinglishRaw);
+    hinglishSentences = splitSentences(cleaned);
+
+    if (hinglishSentences.length === 0) throw new Error('Hinglish empty aaya');
+
+    hinglishLoaded = true;
+    activeLang = 'hinglish';
+    updateTabs();
+    activeSentenceIdx = -1;
+    renderSentences();
+    setStatus('✅ Hinglish ready! Audio chal rahi hai...', 'info');
+    speakFrom(0);
+  } catch (e) {
+    setStatus('❌ Hinglish error: ' + e.message, 'err');
+    console.error(e);
+  } finally {
+    setTabLoading(false);
+    updateTabs();
+  }
+}
+
+function switchToHindi() {
+  if (activeLang === 'hindi') return;
+  stopSpeaking();
+  activeLang = 'hindi';
+  updateTabs();
+  activeSentenceIdx = -1;
+  renderSentences();
+}
+
+function setTabLoading(loading) {
+  [tabHinglish, tabHinglishFs].forEach(btn => {
+    if (loading) {
+      btn.textContent = '⏳ Converting...';
+      btn.classList.add('loading');
+      btn.disabled = true;
+    } else {
+      btn.textContent = 'Hinglish';
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  });
+}
+
+function updateTabs() {
+  const isHi = activeLang === 'hindi';
+  [tabHindi, tabHindiFs].forEach(b => b.classList.toggle('active', isHi));
+  [tabHinglish, tabHinglishFs].forEach(b => b.classList.toggle('active', !isHi));
+}
+
+tabHindi.onclick = switchToHindi;
+tabHindiFs.onclick = switchToHindi;
+tabHinglish.onclick = switchToHinglish;
+tabHinglishFs.onclick = switchToHinglish;
+
+// ============ Fullscreen (sirf reading area) ============
+function openReadingFullscreen() {
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+  renderSentences();
+  speedSliderFs.value = speedSlider.value;
+  speedValFs.textContent = speedVal.textContent;
+  outputFs.style.fontSize = Math.max(20, fontSize + 6) + 'px';
+  exitFsBtn.focus();
+}
+
+function closeReadingFullscreen() {
+  overlay.classList.remove('active');
+  document.body.style.overflow = '';
+  renderSentences();
+  outputEl.style.fontSize = fontSize + 'px';
+}
+
+fsBtn.onclick = openReadingFullscreen;
+exitFsBtn.onclick = closeReadingFullscreen;
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && overlay.classList.contains('active')) {
+    closeReadingFullscreen();
+  }
+});
+
+// ============ Controls ============
+function syncSpeed(v) {
+  speedSlider.value = v;
+  speedSliderFs.value = v;
+  speedVal.textContent = v.toFixed(1) + 'x';
+  speedValFs.textContent = v.toFixed(1) + 'x';
+  localStorage.setItem('tts_speed', v);
+}
+
+function onSpeedChange(v) {
+  syncSpeed(v);
+  if (isSpeaking && currentUtterance) {
+    const idx = activeSentenceIdx;
+    speechSynthesis.cancel();
+    setTimeout(() => speakFrom(idx >= 0 ? idx : 0), 80);
+  }
+}
+
+speedSlider.addEventListener('input', () => onSpeedChange(parseFloat(speedSlider.value)));
+speedSliderFs.addEventListener('input', () => onSpeedChange(parseFloat(speedSliderFs.value)));
+
+function updateFontSize() {
+  outputEl.style.fontSize = fontSize + 'px';
+  if (overlay.classList.contains('active')) {
+    outputFs.style.fontSize = Math.max(20, fontSize + 6) + 'px';
+  }
+  localStorage.setItem('font_size', fontSize);
+  sizeDown.disabled = fontSize <= 12;
+  sizeUp.disabled = fontSize >= 32;
+  sizeDownFs.disabled = fontSize <= 12;
+  sizeUpFs.disabled = fontSize >= 32;
+}
+
+sizeDown.onclick = () => { fontSize = Math.max(12, fontSize - 2); updateFontSize(); };
+sizeUp.onclick = () => { fontSize = Math.min(32, fontSize + 2); updateFontSize(); };
+sizeDownFs.onclick = () => { fontSize = Math.max(12, fontSize - 2); updateFontSize(); };
+sizeUpFs.onclick = () => { fontSize = Math.min(32, fontSize + 2); updateFontSize(); };
+updateFontSize();
+
+// ============ Events ============
+startBtn.onclick = startCamera;
+stopBtn.onclick = stopCamera;
+captureBtn.onclick = capturePhoto;
+switchBtn.onclick = () => {
+  facing = facing === 'environment' ? 'user' : 'environment';
+  startCamera();
+};
+processBtn.onclick = processAll;
+replayBtn.onclick = () => speakFrom(0);
+replayBtnFs.onclick = () => speakFrom(0);
+stopAudioBtn.onclick = stopSpeaking;
+stopAudioBtnFs.onclick = stopSpeaking;
+
+speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+</script>
+</body>
+</html>
